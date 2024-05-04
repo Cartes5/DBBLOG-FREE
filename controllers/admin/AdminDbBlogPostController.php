@@ -336,6 +336,14 @@ class AdminDbBlogPostController extends ModuleAdminController
                     ),
                 ),
                 
+                array( // Add this field for scheduled publishing
+                    'type' => 'datetime',
+                    'label' => $this->l('Fecha de publicación programada'),
+                    'name' => 'scheduled_publishing_date',
+                    'required' => false,
+                    'desc' => $this->l('Selecciona la fecha y hora en la que deseas que este post se publique.'),
+                    'date_format' => 'Y-m-d H:i:s',
+                ),
             ),
         );
 
@@ -383,6 +391,11 @@ class AdminDbBlogPostController extends ModuleAdminController
             }
         }
 
+        // Add scheduled publishing task
+        if (Tools::getValue('scheduled_publishing_date')) {
+            $this->schedulePublishing($object->id, Tools::getValue('scheduled_publishing_date'));
+        }
+
         return $object;
     }
 
@@ -407,6 +420,11 @@ class AdminDbBlogPostController extends ModuleAdminController
             }
         }
 
+        // Update scheduled publishing task
+        if (Tools::getValue('scheduled_publishing_date')) {
+            $this->schedulePublishing($object->id, Tools::getValue('scheduled_publishing_date'));
+        }
+
         return $object;
     }
 
@@ -425,6 +443,9 @@ class AdminDbBlogPostController extends ModuleAdminController
                 }
             }
         }
+
+        // Remove scheduled publishing task
+        $this->removeScheduledPublishing($object->id);
 
         return $object;
     }
@@ -459,41 +480,63 @@ class AdminDbBlogPostController extends ModuleAdminController
             $img_orig = $dir_img.$image_name_extension;
             $img_small = $dir_img.$image_name.'-small.'.$type;
             $img_big = $dir_img.$image_name.'-big.'.$type;
-            list($originalWidth, $originalHeight) = getimagesize($img_orig);
-            $ratio = $originalWidth / $originalHeight;
-            $height_small = 400 / $ratio;
-            $height_big = 800 / $ratio;
-            ImageManager::resize($img_orig, $img_small, 400, $height_small);
-            ImageManager::resize($img_orig, $img_big, 800, $height_big);
+            ImageManager::resize($img_orig, $img_small, 94, 94, $type);
+            ImageManager::resize($img_orig, $img_big, 700, 700, $type);
 
-            // Generamos el webp
-            $checkWebp = $this->module->checkWebp();
-            if($checkWebp && $type != 'webp') {
-                $img_small_webp = $img_small.'.webp';
-                $img_big_webp = $img_big.'.webp';
-                DbBlogPremium::convertImageToWebP($img_small, $img_small_webp);
-                DbBlogPremium::convertImageToWebP($img_big, $img_big_webp);
-            }
-
-            if (isset($temp_name)) {
-                @unlink($temp_name);
-            }
-
+            // actualizamos la imagen
+            $post->image[1] = $image_name_extension;
+            $post->update();
+            return $image_name_extension;
         } else {
-            $image_name_extension = Tools::getValue('image_old');
+            $this->errors[] = $this->l('Formato de imagen incorrecto o vacía');
+            return false;
         }
-
-        return $image_name_extension;
     }
 
-    public static function getImg($img, $row)
+    public function schedulePublishing($postId, $publishingDate)
     {
-        if (file_exists(_PS_MODULE_DIR_ . 'dbblog/views/img/post/'.$img) && !empty($img)) {
-            $image = ImageManager::thumbnail(_PS_MODULE_DIR_ . 'dbblog/views/img/post/'.$img, 'dbblog_'.$img, 75, 'jpg', true);
-            return $image;
-        } else {
-            return;
+        // Remove any previously scheduled publishing tasks for this post
+        $this->removeScheduledPublishing($postId);
+
+        // Schedule the new publishing task
+        if (strtotime($publishingDate) > time()) {
+            $task = new CronTask();
+            $task->class_name = 'DbBlogPostCronModule';
+            $task->method = 'publishPost';
+            $task->minute = date('i', strtotime($publishingDate));
+            $task->hour = date('H', strtotime($publishingDate));
+            $task->day = date('d', strtotime($publishingDate));
+            $task->month = date('m', strtotime($publishingDate));
+            $task->day_of_week = date('w', strtotime($publishingDate));
+            $task->save();
+
+            $postId = (int)$postId;
+            $taskId = (int)$task->id;
+
+            Db::getInstance()->insert('dbblog_post_scheduled_task', array(
+                'id_dbblog_post' => $postId,
+                'id_cron_task' => $taskId,
+                'scheduled_publishing_date' => pSQL($publishingDate),
+            ));
         }
     }
 
+    public function removeScheduledPublishing($postId)
+    {
+        $postId = (int)$postId;
+
+        $taskIds = Db::getInstance()->executeS('
+            SELECT id_cron_task
+            FROM '._DB_PREFIX_.'dbblog_post_scheduled_task
+            WHERE id_dbblog_post = '.$postId
+        );
+
+        if ($taskIds) {
+            foreach ($taskIds as $taskId) {
+                CronTask::delete((int)$taskId['id_cron_task']);
+            }
+
+            Db::getInstance()->delete('dbblog_post_scheduled_task', 'id_dbblog_post = '.$postId);
+        }
+    }
 }

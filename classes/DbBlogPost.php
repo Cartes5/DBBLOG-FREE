@@ -12,6 +12,7 @@ class DbBlogPost extends ObjectModel
     public $views = 0;
     public $active = 1;
     public $index = 1;
+    public $publishing_date; // Nuevo campo agregado
     
     public $title;
     public $short_desc;
@@ -29,24 +30,23 @@ class DbBlogPost extends ObjectModel
         'multilang' => true,
         'multilang_shop' => true,
         'fields' => array(
-            'id_dbblog_category' =>	    array('type' => self::TYPE_INT, 'validate' => 'isunsignedInt', 'required' => true),
-            'active' =>			        array('type' => self::TYPE_BOOL, 'validate' => 'isBool', 'required' => true),
-            'type' =>		            array('type' => self::TYPE_INT, 'validate' => 'isunsignedInt'),
-            'author' =>		            array('type' => self::TYPE_INT, 'validate' => 'isunsignedInt'),
-            'featured' =>		        array('type' => self::TYPE_BOOL, 'validate' => 'isBool'),
-            'views' =>		            array('type' => self::TYPE_INT, 'validate' => 'isunsignedInt'),
-            'index' =>			        array('type' => self::TYPE_BOOL, 'validate' => 'isBool'),
-            'date_add' =>		        array('type' => self::TYPE_DATE),
-            'date_upd' =>		        array('type' => self::TYPE_DATE),
-            
-            // Lang fields
-            'short_desc' =>	        array('type' => self::TYPE_HTML, 'lang' => true, 'required' => false , 'validate' => 'isCleanHtml', 'size' => 4000),
-            'large_desc' =>	        array('type' => self::TYPE_HTML, 'lang' => true, 'required' => false , 'validate' => 'isCleanHtml'),
-			'title' =>			    array('type' => self::TYPE_STRING, 'lang' => true, 'required' => true , 'validate' => 'isCleanHtml', 'size' => 128),
-            'link_rewrite' =>	    array('type' => self::TYPE_STRING, 'lang' => true, 'required' => false , 'validate' => 'isCleanHtml', 'size' => 128),
-            'meta_title' =>	        array('type' => self::TYPE_STRING, 'lang' => true, 'required' => false , 'validate' => 'isCleanHtml', 'size' => 128),
-            'meta_description' =>	array('type' => self::TYPE_STRING, 'lang' => true, 'required' => false , 'validate' => 'isCleanHtml', 'size' => 255),
-            'image' =>			    array('type' => self::TYPE_STRING, 'lang' => true, 'required' => false , 'validate' => 'isCleanHtml', 'size' => 128),
+            'id_dbblog_category' => array('type' => self::TYPE_INT, 'validate' => 'isunsignedInt', 'required' => true),
+            'active' => array('type' => self::TYPE_BOOL, 'validate' => 'isBool', 'required' => true),
+            'type' => array('type' => self::TYPE_INT, 'validate' => 'isunsignedInt'),
+            'author' => array('type' => self::TYPE_INT, 'validate' => 'isunsignedInt'),
+            'featured' => array('type' => self::TYPE_BOOL, 'validate' => 'isBool'),
+            'views' => array('type' => self::TYPE_INT, 'validate' => 'isunsignedInt'),
+            'index' => array('type' => self::TYPE_BOOL, 'validate' => 'isBool'),
+            'date_add' => array('type' => self::TYPE_DATE),
+            'date_upd' => array('type' => self::TYPE_DATE),
+            'publishing_date' => array('type' => self::TYPE_DATE), // Nuevo campo
+            'short_desc' => array('type' => self::TYPE_HTML, 'lang' => true, 'required' => false , 'validate' => 'isCleanHtml', 'size' => 4000),
+            'large_desc' => array('type' => self::TYPE_HTML, 'lang' => true, 'required' => false , 'validate' => 'isCleanHtml'),
+            'title' => array('type' => self::TYPE_STRING, 'lang' => true, 'required' => true , 'validate' => 'isCleanHtml', 'size' => 128),
+            'link_rewrite' => array('type' => self::TYPE_STRING, 'lang' => true, 'required' => false , 'validate' => 'isCleanHtml', 'size' => 128),
+            'meta_title' => array('type' => self::TYPE_STRING, 'lang' => true, 'required' => false , 'validate' => 'isCleanHtml', 'size' => 128),
+            'meta_description' => array('type' => self::TYPE_STRING, 'lang' => true, 'required' => false , 'validate' => 'isCleanHtml', 'size' => 255),
+            'image' => array('type' => self::TYPE_STRING, 'lang' => true, 'required' => false , 'validate' => 'isCleanHtml', 'size' => 128),
         ),
     );
 
@@ -58,16 +58,16 @@ class DbBlogPost extends ObjectModel
     public function add($autodate = true, $null_values = false)
     {
         $default_language_id = Configuration::get('PS_LANG_DEFAULT');
-        foreach ( $this->title as $k => $value ) {
-            if ( preg_match( '/^[1-9]\./', $value ) ) {
-                $this->title[ $k ] = '0' . $value;
+        foreach ($this->title as $k => $value) {
+            if (preg_match('/^[1-9]\./', $value)) {
+                $this->title[$k] = '0' . $value;
             }
-            if(empty($value)) {
+            if (empty($value)) {
                 $this->title[$k] = $this->title[$default_language_id];
             }
         }
-        foreach ( $this->link_rewrite as $k => $value ) {
-            if(empty($value)) {
+        foreach ($this->link_rewrite as $k => $value) {
+            if (empty($value)) {
                 $this->link_rewrite[$k] = Tools::link_rewrite($this->title[$k]);
             }
         }
@@ -75,19 +75,20 @@ class DbBlogPost extends ObjectModel
         return $ret;
     }
 
-    public function update( $null_values = false ) {
+    public function update($null_values = false)
+    {
 
-        foreach ( $this->title as $k => $value ) {
-            if ( preg_match( '/^[1-9]\./', $value ) ) {
-                $this->title[ $k ] = '0' . $value;
+        foreach ($this->title as $k => $value) {
+            if (preg_match('/^[1-9]\./', $value)) {
+                $this->title[$k] = '0' . $value;
             }
         }
-        foreach ( $this->link_rewrite as $k => $value ) {
-            if(empty($value)) {
+        foreach ($this->link_rewrite as $k => $value) {
+            if (empty($value)) {
                 $this->link_rewrite[$k] = Tools::link_rewrite($this->title[$k]);
             }
         }
-        return parent::update( $null_values );
+        return parent::update($null_values);
     }
 
     public static function getAuthors($limit = 0, $all = 1)

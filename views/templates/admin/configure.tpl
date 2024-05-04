@@ -24,25 +24,33 @@
 *}
 
 <div class="panel">
-	<h3><i class="icon icon-credit-card"></i> {l s='DB Blog' mod='dbblog'}</h3>
-	<p>
-		<strong>{l s='Here is my new generic module!' mod='dbblog'}</strong><br />
-		{l s='Thanks to PrestaShop, now I have a great module.' mod='dbblog'}<br />
-		{l s='I can configure it using the following configuration form.' mod='dbblog'}
-	</p>
-	<br />
-	<p>
-		{l s='This module will boost your sales!' mod='dbblog'}
-	</p>
+    <h3><i class="icon icon-credit-card"></i> {l s='DB Blog' mod='dbblog'}</h3>
+    <p>
+        <strong>{l s='Here is my new generic module!' mod='dbblog'}</strong><br />
+        {l s='Thanks to PrestaShop, now I have a great module.' mod='dbblog'}<br />
+        {l s='I can configure it using the following configuration form.' mod='dbblog'}
+    </p>
+    <br />
+    <p>
+        {l s='This module will boost your sales!' mod='dbblog'}
+    </p>
 </div>
 
 <div class="panel">
-	<h3><i class="icon icon-tags"></i> {l s='Documentation' mod='dbblog'}</h3>
-	<p>
-		&raquo; {l s='You can get a PDF documentation to configure this module' mod='dbblog'} :
-		<ul>
-			<li><a href="#" target="_blank">{l s='English' mod='dbblog'}</a></li>
-			<li><a href="#" target="_blank">{l s='French' mod='dbblog'}</a></li>
-		</ul>
-	</p>
+    <h3><i class="icon icon-calendar"></i> {l s='Configuración de Publicación' mod='dbblog'}</h3>
+    <div class="form-group">
+        <label for="publishing_date">{l s='Fecha de publicación deseada'}</label>
+        <input type="date" id="publishing_date" name="publishing_date" class="form-control">
+    </div>
+</div>
+
+<div class="panel">
+    <h3><i class="icon icon-tags"></i> {l s='Documentation' mod='dbblog'}</h3>
+    <p>
+        &raquo; {l s='You can get a PDF documentation to configure this module' mod='dbblog'} :
+        <ul>
+            <li><a href="#" target="_blank">{l s='English' mod='dbblog'}</a></li>
+            <li><a href="#" target="_blank">{l s='French' mod='dbblog'}</a></li>
+        </ul>
+    </p>
 </div>
